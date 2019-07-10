@@ -1,0 +1,12 @@
+{
+    "plugins": [],
+    "source": {
+        "include": [
+            "./index.js",
+            "./src"
+        ]
+    },
+    "opts": {
+        "destination": "./docs"
+    }
+}
