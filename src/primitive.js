@@ -17,8 +17,8 @@
 	}
 	
 })( ('global', eval)('this'), function( global ){
-    "use strict";
-    const
+	"use strict";
+	const
 		{ Function,
 		  Object,
 		  Symbol, Buffer,
@@ -33,55 +33,41 @@
 		aListTemp = [],
 
 		sListClasses = "Function,Array,String,Date,Number,Boolean",
-		
-		/**
-         * @function
-         */
-        or = ( ...aValues ) => {
-			return aValues[0] || aValues[1];
-		},
 
 		/**
-         * @function
-         */
-        and = ( ...aValues ) => {
-			return aValues[0] && aValues[1];
-		},
+		 * @function
+		 */
+		addTemp = vValue =>
+			aListTemp.push(vValue) -1,
 
-        /**
-         * @function
-         */
-        addTemp = vValue =>
-            aListTemp.push(vValue) -1,
-
-        /**
-         * @function
-         */
-        getTemp = iIndex =>
+		/**
+		 * @function
+		 */
+		getTemp = iIndex =>
 			aListTemp[iIndex],
 			
-        /**
-         * @function
-         */
+		/**
+		 * @function
+		 */
 		setTemp = (iIndex, vValue) =>
 			( aListTemp[iIndex] = vValue, iIndex ),
 
-        /**
-         * @function
-         */
+		/**
+		 * @function
+		 */
 		removeTemp = (iIndex) =>
-		    delete aListTemp[iIndex],
+			delete aListTemp[iIndex],
 
-        /**
-         * @function
-         *
-         * @memberof module:primitive
-         */
-		isInteger = or(Number.isInteger, (vValue) => {
-		    return typeof vValue === 'number' && 
-                isFinite(vValue) && 
-                Math.floor(vValue) === vValue;
-		}),
+		/**
+		 * @function
+		 *
+		 * @memberof module:primitive
+		 */
+		isInteger = Number.isInteger || function(vValue){
+			return typeof vValue === 'number' && 
+				isFinite(vValue) && 
+				Math.floor(vValue) === vValue;
+		},
 
 		/**
 		 * @function
@@ -102,8 +88,8 @@
 		 * @memberof module:primitive
 		 */
 		isArray = Array.isArray || function(vValue){
-		    return Object.prototype
-                .toString.call(vValue) === '[object Array]';
+			return Object.prototype
+				.toString.call(vValue) === '[object Array]';
 		},
 
 		/**
@@ -226,20 +212,20 @@
 			return context;
 		},
 
-        /**
-	     *
-	     * @function
-	     * @param {value} prototype
-	     * 
-	     * @memberof module:primitive
-	     */
-	    createObject = function(vPrototype){
-	        if( !instanceOfObject(vPrototype) ){
-	            vPrototype = this;
-	        }
+		/**
+		 *
+		 * @function
+		 * @param {value} prototype
+		 * 
+		 * @memberof module:primitive
+		 */
+		createObject = function(vPrototype){
+			if( !instanceOfObject(vPrototype) ){
+				vPrototype = this;
+			}
 			
-	        return Object.create(vPrototype);
-	    },
+			return Object.create(vPrototype);
+		},
 
 		/**
 		 * @function
@@ -278,21 +264,21 @@
 		 * @memberof module:primitive
 		 */
 		each = (vObject, bKeyTypes, fnCallback) => {
-		    var aListItems;
+			var aListItems;
 
-		    if( isFunction(bKeyTypes) ){
+			if( isFunction(bKeyTypes) ){
 				fnCallback = bKeyTypes;
 				bKeyTypes = false;
 			}
 
-		    aListItems = getKeyValues(vObject, bKeyTypes);
+			aListItems = getKeyValues(vObject, bKeyTypes);
 
-		    for(let iItem in aListItems){
-		        let
-                    mItem = aListItems[iItem],
-		            bContinue = fnCallback(mItem.key, mItem.value);
+			for(let iItem in aListItems){
+				let
+					mItem = aListItems[iItem],
+					bContinue = fnCallback(mItem.key, mItem.value);
 
-		        if( bContinue === false ) break;
+				if( bContinue === false ) break;
 			}
 
 			return vObject;
@@ -310,7 +296,7 @@
 			});
 
 			return aList;
-		}
+		},
 		
 		/**
 		 * @function
@@ -401,11 +387,11 @@
 			return vValue;
 		},
 
-        /**
-         *
-         * @class
-         * 
-         */
+		/**
+		 *
+		 * @class
+		 * 
+		 */
 		XBase = class XBase{
 
 			/**
@@ -461,8 +447,38 @@
 				return bSubMethod;
 			}
 
+			static parse(vValue){
+				if( isArray(vValue) ){
+					vValue = new XArray(vValue);
+				}else if( isDate(vValue) ){
+					vValue = new XDate(vValue);
+				}else switch(typeof vValue){
+					case "string":
+						vValue = new XString(vValue);
+						break;
+
+					case "number":
+						vValue = new XNumber(vValue);
+						break;
+
+					case "boolean":
+						vValue = new XBoolean(vValue);
+						break;
+
+					case "function":
+						vValue = new XFunction(vValue);
+						break;
+				}
+
+				return vValue;
+			}
+
 			/**
 			 * @method
+			 *
+			 * @param {*} value
+			 * @param {function} class
+			 * @param {boolean} useNew
 			 */
 			static toNative(vValue, fnClass, bUseNew){
 				if( isFunction(vValue) )
@@ -481,73 +497,73 @@
 				return vValue;
 			}
 
-            /**
-             *
-             * @method
+			/**
+			 *
+			 * @method
 			 * 
 			 * @param {*} vObject 
 			 * @param {*} mExtensor 
 			 */
-		    extend(vObject, mExtensor){
-		        if( !isPlainObject(mExtensor) ){
-		            mExtensor = vObject;
-		            vObject = this;
-		        }
+			extend(vObject, mExtensor){
+				if( !isPlainObject(mExtensor) ){
+					mExtensor = vObject;
+					vObject = this;
+				}
 				
-		        return extend(vObject, mExtensor);
-		    }
+				return extend(vObject, mExtensor);
+			}
 
-            /**
-             *
-             * @method
+			/**
+			 *
+			 * @method
 			 * 
 			 * @param {list} options 
 			 */
-		    defineProperty(mOptions){
-		        delete mOptions.context;
+			defineProperty(mOptions){
+				delete mOptions.context;
 				
-		        return defineProperty.apply(this, arguments);
-		    }
+				return defineProperty.apply(this, arguments);
+			}
 
-            /**
-             *
-             * @method
+			/**
+			 *
+			 * @method
 			 * 
 			 * @param {*} vObject 
 			 * @param {*} mExtensor 
 			 */
-		    extendProperties(vObject, mExtensor){
-		        if( !isPlainObject(mExtensor) ){
-		            mExtensor = vObject;
-		            vObject = this;
-		        }
+			extendProperties(vObject, mExtensor){
+				if( !isPlainObject(mExtensor) ){
+					mExtensor = vObject;
+					vObject = this;
+				}
 				
-		        return extendProperties(vObject, mExtensor);
-		    }
+				return extendProperties(vObject, mExtensor);
+			}
 			
-            /**
-             *
-             * @method
+			/**
+			 *
+			 * @method
 			 * 
 			 * @param {*} mKeys 
 			 */
-		    defineProperties(mKeys){
-		        var
+			defineProperties(mKeys){
+				var
 					mOptions = {};
 					
-		        mOptions.context = this;
-		        mOptions.keys = mKeys;
+				mOptions.context = this;
+				mOptions.keys = mKeys;
 				
-		        return defineProperties(mOptions);
-		    }
+				return defineProperties(mOptions);
+			}
 			
-            /**
-             * @method
+			/**
+			 * @method
 			 * 
 			 * @param {*} prototype 
 			 */
-		    createObject(vPrototype){
-		        return createObject.call(this, vPrototype);
+			createObject(vPrototype){
+				return createObject.call(this, vPrototype);
 			}
 			
 			/**
@@ -560,32 +576,32 @@
 				return each(this, bKeyTypes, fnCallback);
 			}
 
-            /**
-             * @method
+			/**
+			 * @method
 			 *  
 			 * @param {*} vMethod 
 			 * @param  {...any} aParams 
 			 */
-		    execute(vMethod, ...aParams){
+			execute(vMethod, ...aParams){
 				
 				if( isString(vMethod) )
-					vMethod = this[sMethod];
+					vMethod = this[vMethod];
 				
 				if( !isFunction(vMethod) )
 					throw new TypeError("metodo no valido");
 				
-				return parseXType( fnMethod.apply(this, aParams) );
+				return XBase.parse( vMethod.apply(this, aParams) );
 			}
 
-        },
+		},
 
-        /**
-         * Extencion de la clase nativa Function.
+		/**
+		 * Extencion de la clase nativa Function.
 		 * Genera Funciones anonimas de contexto global.
-         * 
-         * @class
-         * 
-         */
+		 * 
+		 * @class
+		 * 
+		 */
 		XFunction = class XFunction extends MixClass(Function, XBase){
 
 			constructor(vParam, sScript, mOptions){
@@ -618,25 +634,25 @@
 					return self.callback.apply(this, arguments);`);
 
 				this.defineProperty({
-				    "key": "callback",
+					"key": "callback",
 					"value": fnCallback
 				});
 			}
 
 		},
 
-        /**
-         * la clase permite crear un Map encapsulado
-         * que se usa para guardar parametros privados.
-         *
-         * @class
-         * 
-         */
+		/**
+		 * la clase permite crear un Map encapsulado
+		 * que se usa para guardar parametros privados.
+		 *
+		 * @class
+		 * 
+		 */
 		XCapsule = class XCapsule extends XFunction{
 			
 			constructor(){
-                var
-                    fnCapsule,
+				var
+					fnCapsule,
 					mCapsule = new Map,
 					aListConstants = [];
 
@@ -652,13 +668,13 @@
 					return fnCapsule;
 				}
 
-                super(function(fnCallback){
-                    fnCallback.call(this || fnCapsule, fnCapsule);
-                });
+				super(function(fnCallback){
+					fnCallback.call(this || fnCapsule, fnCapsule);
+				});
 
-                fnCapsule = this;
+				fnCapsule = this;
 
-                this.defineProperties({
+				this.defineProperties({
 					"set": {
 						"enumerable": true,
 						"value": setter
@@ -671,16 +687,16 @@
 						"enumerable": true,
 						"value": vKey => mCapsule.has(vKey)
 					},
-                });
-            }
+				});
+			}
 
 			/**
 			 * 
 			 * @param {*} aParams 
 			 * @param {*} sScript 
 			 */
-		    run(aParams, sScript){
-		        return this(aParams, sScript);
+			run(aParams, sScript){
+				return this(aParams, sScript);
 			}
 			
 			/**
@@ -691,7 +707,7 @@
 			constant(vKey, vValue){
 				return this.set(vKey, vValue, true);
 			}
-        },
+		},
 
 		/**
 		 * Extencion de la clase nativa Object.
@@ -701,13 +717,13 @@
 		 */
 		XObject = class XObject extends XBase{
 
-		    constructor(mExtensor){
-		        super();
+			constructor(mExtensor){
+				super();
 				XObject.initializarObject(this, mExtensor);
 			}
 
-		    static initializarObject(oContext, mExtensor){
-                if( !oContext.capsule ){
+			static initializarObject(oContext, mExtensor){
+				if( !oContext.capsule ){
 					defineProperty({
 						"context": oContext,
 						"key": "capsule",
@@ -718,7 +734,7 @@
 						extend(oContext, mExtensor);
 					}
 				}
-		    }
+			}
 
 		},
 
@@ -742,7 +758,7 @@
 
 				push.apply(this, arguments);
 			}
-    
+	
 			get(vKey){
 				vKey = Number(vKey);
 				
@@ -786,7 +802,7 @@
 			/**
 			 * @property {string}
 			 */
-		    static get empty(){
+			static get empty(){
 				return "";
 			}
 
@@ -794,15 +810,15 @@
 			 * @property {string}
 			 */
 			get value(){
-			    return this.capsule.get("value");
+				return this.capsule.get("value");
 			}
 
-            /**
-             * @property {string}
-             */
-		    get value(){
-		        return this.capsule.get("initValue");
-		    }
+			/**
+			 * @property {string}
+			 */
+			get value(){
+				return this.capsule.get("initValue");
+			}
 
 			equals(vValue){
 				return String(this) === String(vValue);
@@ -851,7 +867,7 @@
 		XBoolean = class XBoolean extends MixClass(Boolean, XBase){
 			
 			constructor(vValue){
-				vValue = XBase.parseXBoolean(vValue);
+				vValue = XBoolean.toNative(vValue);
 				super(vValue);
 				this.defineProperty({
 					"key": value,
@@ -867,7 +883,7 @@
 			}
 
 			static toNative(vValue){
-				return super.toNative("boolean", vValue);
+				return super.toNative(vValue);
 			}
 
 			not(){
@@ -1344,7 +1360,7 @@
 	 *
 	 * @property {promise} promise
 	 */
-	class LavDefered extends LavObject{
+	class LavDefered extends LavPrimitive{
 	
 		/**
 		 * @constructs
