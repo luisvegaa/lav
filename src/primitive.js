@@ -215,7 +215,7 @@
 					vValue = mOptions[sOption];
 				}
 		
-				return isFunction(mOptions[sOption]) ?
+				return isFunction(vValue) ?
 					vValue.apply(this, aParams) : vValue;
 			};
 		},
@@ -332,8 +332,10 @@
 			if(aListItems.length)
 				for(let iItem = 0; iItem < aListItems.length;){
 					let
-						mItem = aListItems[iItem],
-						bContinue = fnCallback(mItem.key, mItem.value);
+						bContinue,
+						mItem = aListItems[iItem];
+					
+					bContinue = fnCallback(mItem.key, mItem.value, vObject);
 					
 					if( bContinue === false ) break;
 
@@ -523,7 +525,7 @@
 			 * @method
 			 *
 			 * @param {*} value
-			 * @param {function} class
+			 * @param {function} constructor
 			 * @param {boolean} useNew
 			 * 
 			 * @memberof module:primitive~XBase
@@ -630,16 +632,6 @@
 
 			/**
 			 * @method
-			 * 
-			 * @param {boolean} keyTypes 
-			 * @param {function} callback 
-			 */
-			map(bKeyTypes, fnCallback){
-				return map(this, bKeyTypes, fnCallback);
-			}
-
-			/**
-			 * @method
 			 *  
 			 * @param {*} vMethod 
 			 * @param  {...any} aParams 
@@ -653,6 +645,14 @@
 					throw new TypeError("metodo no valido");
 				
 				return XBase.parse( vMethod.apply(this, aParams) );
+			}
+
+
+			/**
+			 * @method
+			 */
+			x( ...aParams ){
+				return this.execute( ...aParams );
 			}
 
 		},
@@ -957,7 +957,7 @@
 			}
 
 			not(){
-				return new XBoolean( !this.value );
+				return !this.value;
 			}
 
 			or( ...aParams ){
@@ -972,7 +972,7 @@
 						return !vValue;
 					});
 
-				return new XBoolean(vValue);
+				return vValue;
 			}
 
 			and( ...aParams ){
@@ -984,18 +984,18 @@
 						vValue = vValue &&
 							Boolean( aParams[iKey] );
 
-						return !vValue;
+						return vValue;
 					});
 
-				return new XBoolean(vValue);
+				return vValue;
 			}
 
 			nand( ...aParams ){
-				return this.and( ...aParams ).not();
+				return this.x("and", ...aParams ).not();
 			}
 
 			nor( ...aParams ){
-				return this.or( ...aParams ).not();
+				return this.x("or", ...aParams ).not();
 			}
 
 			/*xor( ...aParams ){
@@ -1658,6 +1658,8 @@
 				
 				isNull, isUndefined, useConstructor,
 				ignoreSelf,
+
+				makeSwitch, valueSwitch,
 				
 				keyIn,
 
