@@ -32,16 +32,27 @@
 
 		aListTemp = [],
 
-		sListClasses = "Function,Array,String,Date,Number,Boolean",
+		/** @const {String} */
+		sListClasses = "Function|Array|String|Date|Number|Boolean",
+
+		/** @const {String} */
+		sPromiseStatus = "pending|resolved|rejected",
+
+		/** @const {RegExp} */
+		reStringDivisor = /\|/,
 
 		/**
 		 * @function
+		 * 
+		 * @memberof module:primitive
 		 */
 		addTemp = vValue =>
 			aListTemp.push(vValue) -1,
 
 		/**
 		 * @function
+		 * 
+		 * @memberof module:primitive
 		 */
 		getTemp = iIndex =>
 			aListTemp[iIndex],
@@ -148,9 +159,19 @@
 		isUndefined = (vValue) =>
 			vValue === undefined,
 
+		/**
+		 * @function
+		 *
+		 * @memberof module:primitive
+		 */
 		isConstructor = (vValue, fnClass) =>
 			vValue.constructor === fnClass,
 		
+		/**
+		 * @function
+		 *
+		 * @memberof module:primitive
+		 */
 		isInstance = (vValue, fnClass) =>
 			vValue instanceof fnClass,
 
@@ -179,6 +200,37 @@
 		 */
 		isPlainObject = (vValue) =>
 			useConstructor(vValue, Object),
+
+		/**
+		 * @function
+		 *
+		 * @memberof module:primitive
+		 */
+		makeSwitch = function(mOptions){
+			return function(sOption, ...aParams){
+				var
+					vValue =  mOptions.default;
+				
+				if( sOption in mOptions ){
+					vValue = mOptions[sOption];
+				}
+		
+				return isFunction(mOptions[sOption]) ?
+					vValue.apply(this, aParams) : vValue;
+			};
+		},
+			
+		/**
+		 * @function
+		 *
+		 * @memberof module:primitive
+		 */
+		valueSwitch = function( ...aParams ){
+			var
+				mOptions = aParams.pop();
+		
+			return makeSwitch(mOptions).apply(this, aParams);
+		},
 
 		/**
 		 * @function
@@ -243,6 +295,8 @@
 
 		/**
 		 * @function
+		 *
+		 * @memberof module:primitive
 		 */
 		getKeys = (vContext, bAllProperties) => bAllProperties ?
 			Object.getOwnPropertyNames(vContext) :
@@ -250,6 +304,8 @@
 
 		/**
 		 * @function
+		 *
+		 * @memberof module:primitive
 		 */
 		getKeyValues = (vContext, bAllProperties) =>
 			getKeys(vContext, bAllProperties)
@@ -273,13 +329,16 @@
 
 			aListItems = getKeyValues(vObject, bKeyTypes);
 
-			for(let iItem in aListItems){
-				let
-					mItem = aListItems[iItem],
-					bContinue = fnCallback(mItem.key, mItem.value);
+			if(aListItems.length)
+				for(let iItem = 0; iItem < aListItems.length;){
+					let
+						mItem = aListItems[iItem],
+						bContinue = fnCallback(mItem.key, mItem.value);
+					
+					if( bContinue === false ) break;
 
-				if( bContinue === false ) break;
-			}
+					iItem++;
+				}
 
 			return vObject;
 		},
@@ -291,11 +350,19 @@
 		 * @memberof module:primitive
 		 */
 		map = (aList, fnCallback) => {
+			var
+				aResults = [];
+			
 			each(aList, (iKey, vValue) => {
-				fnCallback(vValue, iKey);
+				var
+					bResult = fnCallback(vValue, iKey);
+
+				aResults.push(aResults);
+
+				return bResult;
 			});
 
-			return aList;
+			return aResults;
 		},
 		
 		/**
@@ -324,6 +391,8 @@
 
 		/**
 		 * @function
+		 *
+		 * @memberof module:primitive
 		 */
 		MixClass = function(Constructor, ...aFnExtensors){
 			class MixClass extends Constructor{
@@ -360,47 +429,23 @@
 		},
 
 		/**
-		 * @function
-		 * @param {*} value
-		 */
-		parseXType = (vValue, bToNative) => {
-			if(bToNative){
-				vValue = vValue.value;
-			}else switch(typeof vValue){
-				case "string":
-					vValue = new XString(vValue);
-					break;
-
-				case "number":
-					vValue = new XNumber(vValue);
-					break;
-
-				case "boolean":
-					vValue = new XBoolean(vValue);
-					break;
-
-				case "function":
-					vValue = new XFunction(vValue);
-					break;
-			}
-
-			return vValue;
-		},
-
-		/**
 		 *
 		 * @class
+		 * @name XBase
+		 * 
 		 * 
 		 */
 		XBase = class XBase{
 
 			/**
 			 * @method
+			 * 
+			 * @memberof module:primitive~XBase
 			 */
 			static getNativeConstructor(vValue){
 				var
 					fnInstanceClass = Object,
-					aList = sListClasses.split(",");
+					aList = sListClasses.split(reStringDivisor);
 
 				if( isNull(vValue) || isUndefined(vValue) )
 					throw new TypeError("type not valid.");
@@ -424,6 +469,8 @@
 
 			/**
 			 * @method
+			 * 
+			 * @memberof module:primitive~XBase
 			 */
 			static isInstance(vValue){
 				return vValue instanceof XBase;
@@ -431,6 +478,8 @@
 
 			/**
 			 * @method
+			 * 
+			 * @memberof module:primitive~XBase
 			 */
 			static useMethods(vValue){
 				var
@@ -447,30 +496,27 @@
 				return bSubMethod;
 			}
 
+			/**
+			 * @method
+			 * 
+			 * @memberof module:primitive~XBase
+			 */
 			static parse(vValue){
-				if( isArray(vValue) ){
-					vValue = new XArray(vValue);
-				}else if( isDate(vValue) ){
-					vValue = new XDate(vValue);
-				}else switch(typeof vValue){
-					case "string":
-						vValue = new XString(vValue);
-						break;
+				return valueSwitch(typeof vValue, {
+					"string": () => new XString(vValue),
+					"number": () =>  new XNumber(vValue),
+					"boolean": () => new XBoolean(vValue),
+					"function": () => new XFunction(vValue),
+					"default": () => {
+						if( isArray(vValue) ){
+							return new XArray(vValue);
+						}else if( isDate(vValue) ){
+							return new XDate(vValue);
+						}
 
-					case "number":
-						vValue = new XNumber(vValue);
-						break;
-
-					case "boolean":
-						vValue = new XBoolean(vValue);
-						break;
-
-					case "function":
-						vValue = new XFunction(vValue);
-						break;
-				}
-
-				return vValue;
+						return vValue;
+					}
+				});
 			}
 
 			/**
@@ -479,6 +525,8 @@
 			 * @param {*} value
 			 * @param {function} class
 			 * @param {boolean} useNew
+			 * 
+			 * @memberof module:primitive~XBase
 			 */
 			static toNative(vValue, fnClass, bUseNew){
 				if( isFunction(vValue) )
@@ -502,7 +550,9 @@
 			 * @method
 			 * 
 			 * @param {*} vObject 
-			 * @param {*} mExtensor 
+			 * @param {*} mExtensor
+			 * 
+			 * @memberof module:primitive~XBase
 			 */
 			extend(vObject, mExtensor){
 				if( !isPlainObject(mExtensor) ){
@@ -518,6 +568,8 @@
 			 * @method
 			 * 
 			 * @param {list} options 
+			 * 
+			 * @memberof module:primitive~XBase
 			 */
 			defineProperty(mOptions){
 				delete mOptions.context;
@@ -578,6 +630,16 @@
 
 			/**
 			 * @method
+			 * 
+			 * @param {boolean} keyTypes 
+			 * @param {function} callback 
+			 */
+			map(bKeyTypes, fnCallback){
+				return map(this, bKeyTypes, fnCallback);
+			}
+
+			/**
+			 * @method
 			 *  
 			 * @param {*} vMethod 
 			 * @param  {...any} aParams 
@@ -600,6 +662,7 @@
 		 * Genera Funciones anonimas de contexto global.
 		 * 
 		 * @class
+		 * @name XFunction
 		 * 
 		 */
 		XFunction = class XFunction extends MixClass(Function, XBase){
@@ -646,6 +709,7 @@
 		 * que se usa para guardar parametros privados.
 		 *
 		 * @class
+		 * @name XCapsule
 		 * 
 		 */
 		XCapsule = class XCapsule extends XFunction{
@@ -713,6 +777,7 @@
 		 * Extencion de la clase nativa Object.
 		 * 
 		 * @class
+		 * @name XObject
 		 * 
 		 */
 		XObject = class XObject extends XBase{
@@ -742,6 +807,7 @@
 		 * Extencion de la clase nativa Array.
 		 * 
 		 * @class
+		 * @name XArray
 		 * 
 		 */
 		XArray = class XArray extends MixClass(Array, XBase){
@@ -776,6 +842,7 @@
 		 * Extencion de la clase nativa String.
 		 * 
 		 * @class
+		 * @name XString
 		 * 
 		 */
 		XString = class XString extends MixClass(String, XBase, XObject){
@@ -832,6 +899,7 @@
 
 		/**
 		 * @class
+		 * @name XDate
 		 */
 		XDate = class XDate extends MixClass(Date, XBase){
 			constructor( ...aParams ){
@@ -844,6 +912,7 @@
 
 		/**
 		 * @class
+		 * @name XNumber
 		 */
 		XNumber = class XNumber extends MixClass(Number, XBase, XObject){
 			constructor(vValue){
@@ -863,6 +932,7 @@
 
 		/**
 		 * @class
+		 * @name XBoolean
 		 */
 		XBoolean = class XBoolean extends MixClass(Boolean, XBase){
 			
@@ -966,10 +1036,7 @@
 				.from(sValue, 'utf8').toString('base64'),
 
 		identity = x => x,
-			
-		sPromiseStatus = "pending|resolved|rejected",
 
-		reStringDivisor = /\|/,
 		reTypeConstructor = /^\[object (.+)\]$/,
 		reActionPromise = /^(all|race|resolve|reject)$/,
 		reBase64 =  /^([0-9a-zA-Z+/]{4})*(([0-9a-zA-Z+/]{2}==)|([0-9a-zA-Z+/]{3}=))?$/,
@@ -1024,7 +1091,7 @@
 	 * @param {value}	valor a comprobar si es boolean.
 	 *
 	 * @example
-	 * Lav.base.isBoolean( false )
+	 * Lav.primitive.isBoolean( false )
 	 * // return true
 	 *
 	 * @memberof module:primitive
