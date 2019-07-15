@@ -180,6 +180,15 @@
 		 *
 		 * @memberof module:primitive
 		 */
+		isInstanceOrConstructor = (vValue, fnClass) =>
+			isInstance(vValue, fnClass) ||
+			isConstructor(vValue, fnClass),
+
+		/**
+		 * @function
+		 *
+		 * @memberof module:primitive
+		 */
 		useConstructor = (vValue, fnClass, bInstanceOf) => {
 			if( isNull(vValue) || isUndefined(vValue) ){
 				return false;
@@ -446,27 +455,18 @@
 			 */
 			static getNativeConstructor(vValue){
 				var
-					fnInstanceClass = Object,
-					aList = sListClasses.split(reStringDivisor);
+					sInstanceClass;
 
 				if( isNull(vValue) || isUndefined(vValue) )
 					throw new TypeError("type not valid.");
 
-				map(aList, sClass => {
-					var
-						bCoincidence,
-						fnNativeClass = global[ sClass ];
+				sInstanceClass = sListClasses
+					.split(reStringDivisor)
+					.find( sClass =>
+						isInstanceOrConstructor(vValue, global[sClass])
+					);
 
-					bCoincidence = isInstance(vValue, fnNativeClass) ||
-						isConstructor(vValue, fnNativeClass);
-					
-					if( bCoincidence )
-						fnInstanceClass = fnNativeClass;
-
-					return !bCoincidence;
-				});
-
-				return fnInstanceClass;
+				return global[ sInstanceClass ] || Object;
 			}
 
 			/**
@@ -667,6 +667,12 @@
 		 */
 		XFunction = class XFunction extends MixClass(Function, XBase){
 
+			/**
+			 * 
+			 * @param {*} vParam 
+			 * @param {String} sScript 
+			 * @param {Object} mOptions 
+			 */
 			constructor(vParam, sScript, mOptions){
 				var
 					fnCallback,
@@ -862,8 +868,14 @@
 				this.capsule.constant("initValue", vValue);
 			}
 
-			static toArray(sValue, reDivider, nEnd){
-				return new XArray( String(sValue).split(reDivider, nEnd) );
+			/**
+			 * 
+			 * @param {String} value 
+			 * @param {RegExp} divider 
+			 * @param {Number} end 
+			 */
+			static toArray(sValue, reDivider, iEnd){
+				return String(sValue).split(reDivider, iEnd);
 			}
 
 			/**
@@ -891,8 +903,12 @@
 				return String(this) === String(vValue);
 			}
 		
-			toArray(reDivider, nEnd){
-				return XString.toArray(this, reDivider, nEnd);
+			toArray(reDivider, iEnd){
+				return XString.toArray(this, reDivider, iEnd);
+			}
+
+			test(reTesting){
+				return RegExp(reTesting).test(this);
 			}
 		
 		},
@@ -953,50 +969,49 @@
 			}
 
 			static toNative(vValue){
-				return super.toNative(vValue);
+				return super.toNative(vValue, Boolean);
+			}
+
+			static not(vValue){
+				return !super.toNative(vValue, Boolean);
+			}
+
+			static isTrue(vValue){
+				return vValue === true;
+			}
+
+			static isFalse(vValue){
+				return vValue === false;
 			}
 
 			not(){
 				return !this.value;
 			}
 
-			or( ...aParams ){
-				var
-					vValue = this.value;
+			or( ...aList ){
+				if( !this.value )
+					if( aList.find(XBoolean.toNative) )
+						return true;
 
-				if( !vValue )
-					each(aParams, iKey => {
-						vValue = vValue ||
-							Boolean( aParams[iKey] );
-				
-						return !vValue;
-					});
-
-				return vValue;
+				return this.value;
 			}
 
-			and( ...aParams ){
-				var
-					vValue = this.value;
+			and( ...aList ){
+				if( this.value )
+					return !XBoolean.isFalse( aList.find(XBoolean.not) );
 
-				if( vValue )
-					each(aParams, iKey => {
-						vValue = vValue &&
-							Boolean( aParams[iKey] );
-
-						return vValue;
-					});
-
-				return vValue;
+				return this.value;
 			}
 
 			nand( ...aParams ){
-				return this.x("and", ...aParams ).not();
+				return !this.and( ...aParams );
 			}
 
 			nor( ...aParams ){
-				return this.x("or", ...aParams ).not();
+				return !this.or( ...aParams );
 			}
+
+
 
 			/*xor( ...aParams ){
 				var
@@ -1297,7 +1312,7 @@
 				"statusText": declare(enumerable, true) 
 					.declare(get, () => {
 						return new XString(sPromiseStatus)
-							.toArray(reStringDivisor).get(nStatus);
+							.x("toArray", reStringDivisor).get(nStatus);
 					}),
 		
 				"isPending":  declare(enumerable, true)
