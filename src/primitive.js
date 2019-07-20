@@ -353,28 +353,6 @@
 
 			return vObject;
 		},
-
-		/**
-		 * 
-		 * @function
-		 *
-		 * @memberof module:primitive
-		 */
-		map = (aList, fnCallback) => {
-			var
-				aResults = [];
-			
-			each(aList, (iKey, vValue) => {
-				var
-					bResult = fnCallback(vValue, iKey);
-
-				aResults.push(aResults);
-
-				return bResult;
-			});
-
-			return aResults;
-		},
 		
 		/**
 		 * @function
@@ -405,6 +383,45 @@
 		 *
 		 * @memberof module:primitive
 		 */
+		extendByPropertyDescriptors = function(vContext, vExtenser, fnValidation){
+			var
+				mPropertyDescriptors = Object.getOwnPropertyDescriptors(vExtenser);
+
+			if( !isFunction(fnValidation) )
+				fnValidation = () => true;
+					
+			each(mPropertyDescriptors, (sKey, mOptions) => {
+				mOptions.key = sKey;
+				mOptions.context = vExtenser;
+						
+				if( fnValidation(mOptions, vContext) )
+					Object.defineProperty(vContext, sKey, mOptions);
+			});
+
+			return vContext;
+		},
+
+		/**
+		 * 
+		 * @function
+		 * 
+		 * @memberof module:primitive
+		 */
+		extendClasss = (fnClass, fnExtensor, fnValidation) => {
+			extendByPropertyDescriptors(
+				fnClass, fnExtensor, fnValidation);
+			
+			extendByPropertyDescriptors(
+				fnClass.prototype, fnExtensor.prototype, fnValidation);
+			
+			return fnClass;
+		},
+
+		/**
+		 * @function
+		 *
+		 * @memberof module:primitive
+		 */
 		MixClass = function(Constructor, ...aFnExtensors){
 			class MixClass extends Constructor{
 				constructor(...aParams){
@@ -412,28 +429,13 @@
 				}
 			}
 
+			function isValid(mOptions, vContext){
+				return !vContext.hasOwnProperty(mOptions.key);
+			}
+
 			aFnExtensors = aFnExtensors.filter(isFunction);
 			aFnExtensors.forEach(fnExtensor => {
-				var
-					oPrototype = MixClass.prototype;
-				
-				each(fnExtensor, true, (key, value) => {
-					if( isFunction(value) && !MixClass.hasOwnProperty(key) )
-						defineProperty({
-							"key": key,
-							"context": MixClass,
-							"value": value
-						});
-				});
-				
-				each(fnExtensor.prototype, true, (key, value) => {
-					if( isFunction(value) && !oPrototype.hasOwnProperty(key) )
-						defineProperty({
-							"key": key,
-							"context": oPrototype,
-							"value": value
-						});
-				});
+				extendClasss(MixClass, fnExtensor, isValid);
 			});
 		
 			return MixClass;
@@ -780,6 +782,24 @@
 		},
 
 		/**
+		 *
+		 * @class
+		 * @name XBaseValue
+		 *
+		 */
+		XBaseValue = class XBaseValue extends XBase{
+			
+			get value(){
+				return this.capsule.get(value);
+			}
+
+			get initValue(){
+				return this.capsule.get("initValue");
+			}
+
+		},
+
+		/**
 		 * Extencion de la clase nativa Object.
 		 * 
 		 * @class
@@ -851,7 +871,7 @@
 		 * @name XString
 		 * 
 		 */
-		XString = class XString extends MixClass(String, XBase, XObject){
+		XString = class XString extends MixClass(String, XBase, XBaseValue, XObject){
 
 			constructor(vValue, bObjectString){
 				if(bObjectString){
@@ -885,20 +905,6 @@
 				return "";
 			}
 
-			/**
-			 * @property {string}
-			 */
-			get value(){
-				return this.capsule.get("value");
-			}
-
-			/**
-			 * @property {string}
-			 */
-			get value(){
-				return this.capsule.get("initValue");
-			}
-
 			equals(vValue){
 				return String(this) === String(vValue);
 			}
@@ -917,7 +923,7 @@
 		 * @class
 		 * @name XDate
 		 */
-		XDate = class XDate extends MixClass(Date, XBase){
+		XDate = class XDate extends MixClass(Date, XBase, XBaseValue){
 			constructor( ...aParams ){
 				super( ...aParams );
 			}
@@ -930,7 +936,7 @@
 		 * @class
 		 * @name XNumber
 		 */
-		XNumber = class XNumber extends MixClass(Number, XBase, XObject){
+		XNumber = class XNumber extends MixClass(Number, XBase, XBaseValue, XObject){
 			constructor(vValue){
 				super(vValue);
 
@@ -950,7 +956,7 @@
 		 * @class
 		 * @name XBoolean
 		 */
-		XBoolean = class XBoolean extends MixClass(Boolean, XBase){
+		XBoolean = class XBoolean extends MixClass(Boolean, XBase, XBaseValue){
 			
 			constructor(vValue){
 				vValue = XBoolean.toNative(vValue);
@@ -1103,7 +1109,7 @@
 
 	/**
 	 * @function
-	 * @param {value}	valor a comprobar si es boolean.
+	 * @param {*} value	valor a comprobar si es boolean.
 	 *
 	 * @example
 	 * Lav.primitive.isBoolean( false )
@@ -1659,8 +1665,8 @@
 		 */
 		get primitive(){
 			return new LavIgnore({
-				MixClass, XBase,
-				XFunction, XObject, XArray, XString, XDate, XNumber, XBoolean,
+				MixClass, XBase, XBaseValue,
+				XFunction, XCapsule, XObject, XArray, XString, XDate, XNumber, XBoolean,
 
 				LavPrimitive,
 				LavPrimitiveSelector,
